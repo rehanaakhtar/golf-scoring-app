@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Islamabad Club Stableford</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Islamabad Club</p>
+          <h1>Golf Day Scoring Hub</h1>
+          <p class="hero-copy">
+            Set up players, score each flight on a full hole-by-hole card, and keep a
+            live Stableford leaderboard in sync across devices.
+          </p>
+        </div>
+        <div class="hero-card">
+          <div class="hero-stat">
+            <span id="player-count">0</span>
+            <small>Players</small>
+          </div>
+          <div class="hero-stat">
+            <span id="flight-count">0</span>
+            <small>Flights</small>
+          </div>
+          <div class="hero-stat">
+            <span id="holes-count">18</span>
+            <small>Holes</small>
+          </div>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="App sections">
+        <button class="tab active" data-tab="setup">Setup</button>
+        <button class="tab" data-tab="scoring">Scoring</button>
+        <button class="tab" data-tab="leaderboard">Leaderboard</button>
+      </nav>
+
+      <section class="tab-panel active" id="tab-setup">
+        <section class="panel" id="setup-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Tournament Setup</p>
+              <h2>Players and Flights</h2>
+            </div>
+            <button id="add-player" class="secondary">Add Player</button>
+          </div>
+          <p class="hint">
+            Add up to 20 players. Each flight can hold up to 4 players, and one scorer
+            per flight can update the entire card.
+          </p>
+          <div class="table-wrap">
+            <table class="setup-table">
+              <thead>
+                <tr>
+                  <th>Player Name</th>
+                  <th>Handicap</th>
+                  <th>Flight</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="player-rows"></tbody>
+            </table>
+          </div>
+          <div class="actions">
+            <button id="save-setup">Save Tournament Setup</button>
+            <span id="save-message" class="hint"></span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Course Setup</p>
+              <h2>Islamabad Club Hole Guide</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="course-table">
+              <thead>
+                <tr>
+                  <th>Hole</th>
+                  <th>Par</th>
+                  <th>Stroke Index</th>
+                </tr>
+              </thead>
+              <tbody id="course-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="tab-scoring">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Flight Scoring</p>
+              <h2>Scorecard</h2>
+            </div>
+            <span id="scoring-message" class="hint">Choose a flight to start scoring.</span>
+          </div>
+          <div class="score-toolbar">
+            <label>
+              Flight
+              <select id="flight-select"></select>
+            </label>
+            <div class="flight-summary" id="flight-summary"></div>
+          </div>
+          <div id="scorecard-wrap" class="table-wrap scorecard-wrap empty">
+            Save the setup above to begin score entry.
+          </div>
+          <div class="actions score-actions">
+            <button id="save-scorecard">Save Flight Scorecard</button>
+            <button id="clear-flight" class="secondary">Clear Flight Scores</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="tab-leaderboard">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Live Results</p>
+              <h2>Leaderboard</h2>
+            </div>
+            <span id="updated-at" class="hint">Waiting for scores...</span>
+          </div>
+          <div class="table-wrap">
+            <table class="leaderboard">
+              <thead>
+                <tr>
+                  <th>Pos</th>
+                  <th>Player</th>
+                  <th>Flight</th>
+                  <th>HCP</th>
+                  <th>Thru</th>
+                  <th>Gross</th>
+                  <th>Net</th>
+                  <th>Stableford</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="player-row-template">
+      <tr>
+        <td><input type="text" class="player-name" placeholder="Player name" /></td>
+        <td><input type="number" class="player-handicap" min="0" max="54" value="0" /></td>
+        <td><input type="text" class="player-flight" placeholder="A" maxlength="12" /></td>
+        <td><button class="danger remove-player">Remove</button></td>
+      </tr>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

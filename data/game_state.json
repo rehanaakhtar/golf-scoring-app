@@ -1,0 +1,144 @@
+{
+  "course": {
+    "name": "Islamabad Club",
+    "holes": [
+      {
+        "number": 1,
+        "par": 4,
+        "index": 17
+      },
+      {
+        "number": 2,
+        "par": 4,
+        "index": 5
+      },
+      {
+        "number": 3,
+        "par": 3,
+        "index": 13
+      },
+      {
+        "number": 4,
+        "par": 4,
+        "index": 1
+      },
+      {
+        "number": 5,
+        "par": 3,
+        "index": 7
+      },
+      {
+        "number": 6,
+        "par": 5,
+        "index": 11
+      },
+      {
+        "number": 7,
+        "par": 4,
+        "index": 3
+      },
+      {
+        "number": 8,
+        "par": 4,
+        "index": 9
+      },
+      {
+        "number": 9,
+        "par": 5,
+        "index": 15
+      },
+      {
+        "number": 10,
+        "par": 4,
+        "index": 2
+      },
+      {
+        "number": 11,
+        "par": 4,
+        "index": 4
+      },
+      {
+        "number": 12,
+        "par": 3,
+        "index": 14
+      },
+      {
+        "number": 13,
+        "par": 4,
+        "index": 6
+      },
+      {
+        "number": 14,
+        "par": 3,
+        "index": 18
+      },
+      {
+        "number": 15,
+        "par": 4,
+        "index": 12
+      },
+      {
+        "number": 16,
+        "par": 4,
+        "index": 16
+      },
+      {
+        "number": 17,
+        "par": 5,
+        "index": 10
+      },
+      {
+        "number": 18,
+        "par": 5,
+        "index": 8
+      }
+    ]
+  },
+  "players": [
+    {
+      "id": "729bd369",
+      "name": "Rehan",
+      "handicap": 8,
+      "flight_id": "A"
+    },
+    {
+      "id": "a2e70bcd",
+      "name": "Faiza",
+      "handicap": 20,
+      "flight_id": "A"
+    },
+    {
+      "id": "ed9d725e",
+      "name": "Amer",
+      "handicap": 10,
+      "flight_id": "A"
+    },
+    {
+      "id": "f5b2dc99",
+      "name": "Quin",
+      "handicap": 12,
+      "flight_id": "B"
+    },
+    {
+      "id": "1966c32e",
+      "name": "Doc",
+      "handicap": 8,
+      "flight_id": "B"
+    },
+    {
+      "id": "f9a15036",
+      "name": "Samir",
+      "handicap": 12,
+      "flight_id": "B"
+    }
+  ],
+  "scores": {
+    "729bd369": {},
+    "a2e70bcd": {},
+    "ed9d725e": {},
+    "f5b2dc99": {},
+    "1966c32e": {},
+    "f9a15036": {}
+  },
+  "updated_at": 1776410642.435942
+}
