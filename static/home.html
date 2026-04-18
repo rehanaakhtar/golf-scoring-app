@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Tournament</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Islamabad Club</p>
+          <h1>Create A Tournament Link</h1>
+          <p class="hero-copy">
+            Start a new tournament, get a shareable link instantly, and let each event
+            run independently without overwriting other live competitions.
+          </p>
+        </div>
+        <div class="hero-card">
+          <div class="hero-stat">
+            <span>1</span>
+            <small>Create</small>
+          </div>
+          <div class="hero-stat">
+            <span>2</span>
+            <small>Share</small>
+          </div>
+          <div class="hero-stat">
+            <span>3</span>
+            <small>Score Live</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel home-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">New Tournament</p>
+            <h2>Start A Fresh Event</h2>
+          </div>
+        </div>
+        <div class="home-create">
+          <label>
+            Tournament Name
+            <input
+              id="tournament-create-name"
+              type="text"
+              maxlength="80"
+              placeholder="Islamabad Club Saturday Stableford"
+            />
+          </label>
+          <button id="create-tournament">Create Tournament</button>
+        </div>
+        <p id="create-message" class="hint">
+          Leave the name blank if you want to set it later.
+        </p>
+        <div id="share-result" class="share-result hidden">
+          <div>
+            <p class="eyebrow">Shareable Link</p>
+            <h2>Your Tournament Is Ready</h2>
+          </div>
+          <div class="share-box">
+            <input id="share-url" type="text" readonly />
+            <button id="copy-share-url" class="secondary">Copy Link</button>
+          </div>
+          <a id="open-tournament" class="hero-link" href="#">Open Tournament</a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Recent Links</p>
+            <h2>Existing Tournaments</h2>
+          </div>
+        </div>
+        <div id="recent-tournaments" class="recent-list">
+          <p class="hint">Loading tournaments...</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/home.js"></script>
+  </body>
+</html>

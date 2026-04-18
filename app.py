@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import queue
+import re
 import threading
 import time
 import uuid
@@ -51,6 +52,9 @@ COURSE = {
 
 def default_state() -> dict[str, Any]:
     return {
+        "id": "",
+        "name": "Untitled Tournament",
+        "status": "active",
         "course": COURSE,
         "players": [],
         "scores": {},
@@ -59,10 +63,17 @@ def default_state() -> dict[str, Any]:
 
 
 class StorageBackend:
-    def load(self) -> dict[str, Any]:
+    def load_tournament(self, tournament_id: str) -> dict[str, Any] | None:
         raise NotImplementedError
 
-    def save(self, state: dict[str, Any]) -> None:
+    def save_tournament(self, tournament_id: str, state: dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def create_tournament(self, tournament_id: str, state: dict[str, Any]) -> dict[str, Any]:
+        self.save_tournament(tournament_id, state)
+        return state
+
+    def list_tournaments(self) -> list[dict[str, Any]]:
         raise NotImplementedError
 
 
@@ -70,26 +81,62 @@ class FileStorage(StorageBackend):
     def __init__(self, path: Path) -> None:
         self.path = path
 
-    def load(self) -> dict[str, Any]:
+    def _load_all(self) -> dict[str, dict[str, Any]]:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if not self.path.exists():
-            state = default_state()
-            self.save(state)
-            return state
+            self._save_all({})
+            return {}
         with self.path.open("r", encoding="utf-8") as fh:
             loaded = json.load(fh)
-        if "course" not in loaded:
-            loaded["course"] = COURSE
-        if "players" not in loaded:
-            loaded["players"] = []
-        if "scores" not in loaded:
-            loaded["scores"] = {}
-        return loaded
+        if self._looks_like_legacy_state(loaded):
+            legacy = self._normalize_state(loaded, loaded.get("id") or "legacy")
+            return {legacy["id"]: legacy}
+        return {
+            tournament_id: self._normalize_state(state, tournament_id)
+            for tournament_id, state in loaded.items()
+        }
 
-    def save(self, state: dict[str, Any]) -> None:
+    def _save_all(self, tournaments: dict[str, dict[str, Any]]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("w", encoding="utf-8") as fh:
-            json.dump(state, fh, indent=2)
+            json.dump(tournaments, fh, indent=2)
+
+    def load_tournament(self, tournament_id: str) -> dict[str, Any] | None:
+        tournaments = self._load_all()
+        state = tournaments.get(tournament_id)
+        return deepcopy(state) if state else None
+
+    def save_tournament(self, tournament_id: str, state: dict[str, Any]) -> None:
+        tournaments = self._load_all()
+        tournaments[tournament_id] = self._normalize_state(state, tournament_id)
+        self._save_all(tournaments)
+
+    def list_tournaments(self) -> list[dict[str, Any]]:
+        tournaments = self._load_all()
+        return [
+            {
+                "id": state["id"],
+                "name": state.get("name", "Untitled Tournament"),
+                "status": state.get("status", "active"),
+                "updated_at": state.get("updated_at"),
+                "player_count": len(state.get("players", [])),
+            }
+            for state in tournaments.values()
+        ]
+
+    def _normalize_state(self, state: dict[str, Any], tournament_id: str) -> dict[str, Any]:
+        normalized = deepcopy(state)
+        normalized["id"] = tournament_id
+        normalized.setdefault("name", "Untitled Tournament")
+        normalized.setdefault("status", "active")
+        normalized.setdefault("course", COURSE)
+        normalized.setdefault("players", [])
+        normalized.setdefault("scores", {})
+        normalized.setdefault("updated_at", time.time())
+        return normalized
+
+    def _looks_like_legacy_state(self, payload: dict[str, Any]) -> bool:
+        return "course" in payload and "players" in payload and "scores" in payload
 
 
 class SupabaseStorage(StorageBackend):
@@ -99,27 +146,17 @@ class SupabaseStorage(StorageBackend):
         self.table = table
         self.base_endpoint = f"{self.url}/rest/v1/{self.table}"
 
-    def load(self) -> dict[str, Any]:
-        query_url = f"{self.base_endpoint}?select=state&id=eq.default&limit=1"
+    def load_tournament(self, tournament_id: str) -> dict[str, Any] | None:
+        query_url = f"{self.base_endpoint}?select=state&id=eq.{tournament_id}&limit=1"
         payload = self._request("GET", query_url)
         if payload:
-            state = payload[0].get("state") or default_state()
-            if "course" not in state:
-                state["course"] = COURSE
-            if "players" not in state:
-                state["players"] = []
-            if "scores" not in state:
-                state["scores"] = {}
-            return state
+            return self._normalize_state(payload[0].get("state") or default_state(), tournament_id)
+        return None
 
-        state = default_state()
-        self.save(state)
-        return state
-
-    def save(self, state: dict[str, Any]) -> None:
+    def save_tournament(self, tournament_id: str, state: dict[str, Any]) -> None:
         body = {
-            "id": "default",
-            "state": state,
+            "id": tournament_id,
+            "state": self._normalize_state(state, tournament_id),
             "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
         self._request(
@@ -128,6 +165,23 @@ class SupabaseStorage(StorageBackend):
             body=body,
             extra_headers={"Prefer": "resolution=merge-duplicates"},
         )
+
+    def list_tournaments(self) -> list[dict[str, Any]]:
+        query_url = f"{self.base_endpoint}?select=id,state,updated_at&order=updated_at.desc"
+        payload = self._request("GET", query_url)
+        tournaments = []
+        for row in payload or []:
+            state = self._normalize_state(row.get("state") or default_state(), row["id"])
+            tournaments.append(
+                {
+                    "id": state["id"],
+                    "name": state.get("name", "Untitled Tournament"),
+                    "status": state.get("status", "active"),
+                    "updated_at": state.get("updated_at"),
+                    "player_count": len(state.get("players", [])),
+                }
+            )
+        return tournaments
 
     def _request(
         self,
@@ -159,6 +213,17 @@ class SupabaseStorage(StorageBackend):
         except error.URLError as exc:
             raise RuntimeError(f"Could not connect to Supabase: {exc.reason}") from exc
 
+    def _normalize_state(self, state: dict[str, Any], tournament_id: str) -> dict[str, Any]:
+        normalized = deepcopy(state)
+        normalized["id"] = tournament_id
+        normalized.setdefault("name", "Untitled Tournament")
+        normalized.setdefault("status", "active")
+        normalized.setdefault("course", COURSE)
+        normalized.setdefault("players", [])
+        normalized.setdefault("scores", {})
+        normalized.setdefault("updated_at", time.time())
+        return normalized
+
 
 def create_storage() -> StorageBackend:
     supabase_url = os.environ.get("SUPABASE_URL", "").strip()
@@ -168,36 +233,52 @@ def create_storage() -> StorageBackend:
     return FileStorage(STATE_FILE)
 
 
-class ScoreStore:
+def make_tournament_id() -> str:
+    return uuid.uuid4().hex[:10]
+
+
+class TournamentStore:
     def __init__(self, storage: StorageBackend) -> None:
         self.storage = storage
         self.lock = threading.Lock()
-        self.subscribers: list[queue.Queue[str]] = []
-        self.state = self._load()
+        self.subscribers: dict[str, list[queue.Queue[str]]] = {}
 
-    def _load(self) -> dict[str, Any]:
-        return self.storage.load()
-
-    def _save_unlocked(self, state: dict[str, Any]) -> None:
-        self.storage.save(state)
-
-    def get_state(self) -> dict[str, Any]:
+    def create_tournament(self, name: str) -> dict[str, Any]:
+        tournament_id = make_tournament_id()
+        state = default_state()
+        state["id"] = tournament_id
+        state["name"] = name or "Untitled Tournament"
         with self.lock:
-            return deepcopy(self.state)
+            created = self.storage.create_tournament(tournament_id, state)
+        return build_response(created)
 
-    def replace_players(self, players: list[dict[str, Any]]) -> dict[str, Any]:
+    def list_tournaments(self) -> list[dict[str, Any]]:
+        with self.lock:
+            return self.storage.list_tournaments()
+
+    def get_state(self, tournament_id: str) -> dict[str, Any]:
+        with self.lock:
+            state = self.storage.load_tournament(tournament_id)
+        if not state:
+            raise ValueError("Tournament not found.")
+        return deepcopy(state)
+
+    def replace_players(self, tournament_id: str, players: list[dict[str, Any]]) -> dict[str, Any]:
         validated = self._validate_players(players)
         with self.lock:
-            self.state["players"] = validated
-            self.state["scores"] = {player["id"]: {} for player in validated}
-            self.state["updated_at"] = time.time()
-            self._save_unlocked(self.state)
-            snapshot = deepcopy(self.state)
-        self._broadcast(snapshot)
+            state = self.storage.load_tournament(tournament_id)
+            if not state:
+                raise ValueError("Tournament not found.")
+            state["players"] = validated
+            state["scores"] = {player["id"]: {} for player in validated}
+            state["updated_at"] = time.time()
+            self.storage.save_tournament(tournament_id, state)
+            snapshot = deepcopy(state)
+        self._broadcast(tournament_id, snapshot)
         return snapshot
 
     def update_hole_scores(
-        self, flight_id: str, hole: int, score_entries: list[dict[str, Any]]
+        self, tournament_id: str, flight_id: str, hole: int, score_entries: list[dict[str, Any]]
     ) -> dict[str, Any]:
         hole_key = str(hole)
         hole_data = get_hole(hole)
@@ -207,11 +288,10 @@ class ScoreStore:
             raise ValueError("At least one score entry is required.")
 
         with self.lock:
-            flight_players = {
-                player["id"]: player
-                for player in self.state["players"]
-                if player["flight_id"] == flight_id
-            }
+            state = self.storage.load_tournament(tournament_id)
+            if not state:
+                raise ValueError("Tournament not found.")
+            flight_players = {player["id"]: player for player in state["players"] if player["flight_id"] == flight_id}
             if not flight_players:
                 raise ValueError("Flight not found.")
 
@@ -221,33 +301,32 @@ class ScoreStore:
                 if player_id not in flight_players:
                     raise ValueError("Score entry includes a player outside this flight.")
                 if gross in (None, ""):
-                    self.state["scores"].setdefault(player_id, {}).pop(hole_key, None)
+                    state["scores"].setdefault(player_id, {}).pop(hole_key, None)
                     continue
                 if not isinstance(gross, int):
                     raise ValueError("Gross score must be an integer.")
                 if gross < 1 or gross > 20:
                     raise ValueError("Gross score must be between 1 and 20.")
-                self.state["scores"].setdefault(player_id, {})[hole_key] = gross
+                state["scores"].setdefault(player_id, {})[hole_key] = gross
 
-            self.state["updated_at"] = time.time()
-            self._save_unlocked(self.state)
-            snapshot = deepcopy(self.state)
+            state["updated_at"] = time.time()
+            self.storage.save_tournament(tournament_id, state)
+            snapshot = deepcopy(state)
 
-        self._broadcast(snapshot)
+        self._broadcast(tournament_id, snapshot)
         return snapshot
 
     def update_flight_scores(
-        self, flight_id: str, scorecard: dict[str, list[dict[str, Any]]]
+        self, tournament_id: str, flight_id: str, scorecard: dict[str, list[dict[str, Any]]]
     ) -> dict[str, Any]:
         if not isinstance(scorecard, dict) or not scorecard:
             raise ValueError("Scorecard payload is required.")
 
         with self.lock:
-            flight_players = {
-                player["id"]: player
-                for player in self.state["players"]
-                if player["flight_id"] == flight_id
-            }
+            state = self.storage.load_tournament(tournament_id)
+            if not state:
+                raise ValueError("Tournament not found.")
+            flight_players = {player["id"]: player for player in state["players"] if player["flight_id"] == flight_id}
             if not flight_players:
                 raise ValueError("Flight not found.")
 
@@ -267,37 +346,38 @@ class ScoreStore:
                     if player_id not in flight_players:
                         raise ValueError("Score entry includes a player outside this flight.")
                     if gross in (None, ""):
-                        self.state["scores"].setdefault(player_id, {}).pop(hole_key, None)
+                        state["scores"].setdefault(player_id, {}).pop(hole_key, None)
                         continue
                     if not isinstance(gross, int):
                         raise ValueError("Gross score must be an integer.")
                     if gross < 1 or gross > 20:
                         raise ValueError("Gross score must be between 1 and 20.")
-                    self.state["scores"].setdefault(player_id, {})[hole_key] = gross
+                    state["scores"].setdefault(player_id, {})[hole_key] = gross
 
-            self.state["updated_at"] = time.time()
-            self._save_unlocked(self.state)
-            snapshot = deepcopy(self.state)
+            state["updated_at"] = time.time()
+            self.storage.save_tournament(tournament_id, state)
+            snapshot = deepcopy(state)
 
-        self._broadcast(snapshot)
+        self._broadcast(tournament_id, snapshot)
         return snapshot
 
-    def register(self) -> queue.Queue[str]:
+    def register(self, tournament_id: str) -> queue.Queue[str]:
         subscription: queue.Queue[str] = queue.Queue()
         with self.lock:
-            self.subscribers.append(subscription)
+            self.subscribers.setdefault(tournament_id, []).append(subscription)
         return subscription
 
-    def unregister(self, subscription: queue.Queue[str]) -> None:
+    def unregister(self, tournament_id: str, subscription: queue.Queue[str]) -> None:
         with self.lock:
-            if subscription in self.subscribers:
-                self.subscribers.remove(subscription)
+            bucket = self.subscribers.get(tournament_id, [])
+            if subscription in bucket:
+                bucket.remove(subscription)
 
-    def _broadcast(self, state: dict[str, Any]) -> None:
+    def _broadcast(self, tournament_id: str, state: dict[str, Any]) -> None:
         payload = json.dumps(build_response(state))
         dead: list[queue.Queue[str]] = []
         with self.lock:
-            subscribers = list(self.subscribers)
+            subscribers = list(self.subscribers.get(tournament_id, []))
         for subscriber in subscribers:
             try:
                 subscriber.put_nowait(payload)
@@ -305,7 +385,9 @@ class ScoreStore:
                 dead.append(subscriber)
         if dead:
             with self.lock:
-                self.subscribers = [sub for sub in self.subscribers if sub not in dead]
+                self.subscribers[tournament_id] = [
+                    sub for sub in self.subscribers.get(tournament_id, []) if sub not in dead
+                ]
 
     def _validate_players(self, players: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(players, list):
@@ -429,6 +511,9 @@ def build_response(state: dict[str, Any]) -> dict[str, Any]:
     )
 
     return {
+        "id": state["id"],
+        "name": state.get("name", "Untitled Tournament"),
+        "status": state.get("status", "active"),
         "course": COURSE,
         "players": players,
         "flights": ordered_flights,
@@ -437,7 +522,7 @@ def build_response(state: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-STORE = ScoreStore(create_storage())
+STORE = TournamentStore(create_storage())
 
 
 class GolfHandler(BaseHTTPRequestHandler):
@@ -447,6 +532,10 @@ class GolfHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
 
         if parsed.path == "/":
+            self._serve_file(STATIC_DIR / "home.html", "text/html; charset=utf-8")
+            return
+        tournament_match = re.fullmatch(r"/t/([a-z0-9]+)", parsed.path)
+        if tournament_match:
             self._serve_file(STATIC_DIR / "index.html", "text/html; charset=utf-8")
             return
         if parsed.path == "/styles.css":
@@ -455,11 +544,25 @@ class GolfHandler(BaseHTTPRequestHandler):
         if parsed.path == "/app.js":
             self._serve_file(STATIC_DIR / "app.js", "application/javascript; charset=utf-8")
             return
-        if parsed.path == "/api/state":
-            self._send_json(build_response(STORE.get_state()))
+        if parsed.path == "/home.js":
+            self._serve_file(STATIC_DIR / "home.js", "application/javascript; charset=utf-8")
             return
-        if parsed.path == "/api/events":
-            self._serve_events()
+        tournament_state_match = re.fullmatch(r"/api/tournaments/([a-z0-9]+)/state", parsed.path)
+        if tournament_state_match:
+            try:
+                state = STORE.get_state(tournament_state_match.group(1))
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            self._send_json(build_response(state))
+            return
+        tournament_events_match = re.fullmatch(r"/api/tournaments/([a-z0-9]+)/events", parsed.path)
+        if tournament_events_match:
+            self._serve_events(tournament_events_match.group(1))
+            return
+        if parsed.path == "/api/tournaments":
+            tournaments = STORE.list_tournaments()
+            self._send_json({"tournaments": tournaments})
             return
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not found")
@@ -467,21 +570,32 @@ class GolfHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
 
-        if parsed.path == "/api/setup":
+        if parsed.path == "/api/tournaments":
+            payload = self._read_json()
+            created = STORE.create_tournament(str(payload.get("name", "")).strip())
+            created["share_url"] = self._tournament_url(created["id"])
+            self._send_json(created, status=HTTPStatus.CREATED)
+            return
+        tournament_setup_match = re.fullmatch(r"/api/tournaments/([a-z0-9]+)/setup", parsed.path)
+        if tournament_setup_match:
             payload = self._read_json()
             try:
-                state = STORE.replace_players(payload.get("players", []))
+                state = STORE.replace_players(tournament_setup_match.group(1), payload.get("players", []))
             except ValueError as exc:
                 self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
                 return
-            self._send_json(build_response(state))
+            response = build_response(state)
+            response["share_url"] = self._tournament_url(response["id"])
+            self._send_json(response)
             return
 
-        if parsed.path == "/api/score":
+        tournament_score_match = re.fullmatch(r"/api/tournaments/([a-z0-9]+)/score", parsed.path)
+        if tournament_score_match:
             payload = self._read_json()
             try:
                 hole = int(payload.get("hole"))
                 state = STORE.update_hole_scores(
+                    tournament_score_match.group(1),
                     str(payload.get("flight_id", "")).strip(),
                     hole,
                     payload.get("scores", []),
@@ -492,10 +606,14 @@ class GolfHandler(BaseHTTPRequestHandler):
             self._send_json(build_response(state))
             return
 
-        if parsed.path == "/api/flight-scores":
+        tournament_flight_scores_match = re.fullmatch(
+            r"/api/tournaments/([a-z0-9]+)/flight-scores", parsed.path
+        )
+        if tournament_flight_scores_match:
             payload = self._read_json()
             try:
                 state = STORE.update_flight_scores(
+                    tournament_flight_scores_match.group(1),
                     str(payload.get("flight_id", "")).strip(),
                     payload.get("scorecard", {}),
                 )
@@ -509,7 +627,8 @@ class GolfHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/score":
+        tournament_score_match = re.fullmatch(r"/api/tournaments/([a-z0-9]+)/score", parsed.path)
+        if not tournament_score_match:
             self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             return
 
@@ -521,7 +640,11 @@ class GolfHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "flight_id and hole are required."}, status=400)
             return
 
-        state = STORE.get_state()
+        try:
+            state = STORE.get_state(tournament_score_match.group(1))
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, status=HTTPStatus.NOT_FOUND)
+            return
         flight_players = [
             player for player in state["players"] if player["flight_id"] == flight_id
         ]
@@ -531,7 +654,9 @@ class GolfHandler(BaseHTTPRequestHandler):
             "scores": [{"player_id": player["id"], "gross": ""} for player in flight_players],
         }
         try:
-            updated = STORE.update_hole_scores(flight_id, hole, payload["scores"])
+            updated = STORE.update_hole_scores(
+                tournament_score_match.group(1), flight_id, hole, payload["scores"]
+            )
         except ValueError as exc:
             self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
             return
@@ -568,8 +693,13 @@ class GolfHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def _serve_events(self) -> None:
-        subscription = STORE.register()
+    def _serve_events(self, tournament_id: str) -> None:
+        try:
+            current_state = STORE.get_state(tournament_id)
+        except ValueError:
+            self.send_error(HTTPStatus.NOT_FOUND, "Tournament not found")
+            return
+        subscription = STORE.register(tournament_id)
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -577,7 +707,7 @@ class GolfHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         try:
-            initial_payload = json.dumps(build_response(STORE.get_state()))
+            initial_payload = json.dumps(build_response(current_state))
             self.wfile.write(f"data: {initial_payload}\n\n".encode("utf-8"))
             self.wfile.flush()
 
@@ -591,7 +721,12 @@ class GolfHandler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
         finally:
-            STORE.unregister(subscription)
+            STORE.unregister(tournament_id, subscription)
+
+    def _tournament_url(self, tournament_id: str) -> str:
+        host = self.headers.get("Host", f"localhost:{os.environ.get('PORT', '8000')}")
+        protocol = "https" if self.headers.get("X-Forwarded-Proto") == "https" else "http"
+        return f"{protocol}://{host}/t/{tournament_id}"
 
 
 def run() -> None:

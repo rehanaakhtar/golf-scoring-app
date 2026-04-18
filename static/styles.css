@@ -70,6 +70,24 @@ select {
   color: var(--muted);
 }
 
+.hero-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.hero-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 11px 18px;
+  background: #dce8de;
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
 .eyebrow {
   margin: 0 0 10px;
   color: var(--accent);
@@ -104,6 +122,55 @@ select {
 .panel {
   margin-bottom: 18px;
   padding: 20px;
+}
+
+.home-create,
+.share-box,
+.recent-list {
+  display: grid;
+  gap: 14px;
+}
+
+.home-create {
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: end;
+}
+
+.share-result {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(31, 107, 71, 0.12);
+  background: rgba(248, 242, 231, 0.76);
+}
+
+.share-result.hidden {
+  display: none;
+}
+
+.share-box {
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: center;
+}
+
+.recent-card {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid rgba(31, 107, 71, 0.1);
+  border-radius: 18px;
+  text-decoration: none;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.recent-card strong {
+  color: var(--accent-strong);
+}
+
+.recent-card span {
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .panel-head,
@@ -401,6 +468,11 @@ button.danger {
   .panel-head,
   .actions {
     flex-wrap: wrap;
+  }
+
+  .home-create,
+  .share-box {
+    grid-template-columns: 1fr;
   }
 
   .score-panel-header {

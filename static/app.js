@@ -3,6 +3,8 @@ const state = {
   activeTab: "setup",
 };
 
+const tournamentId = window.location.pathname.split("/").filter(Boolean).at(-1) || "";
+
 const playerRows = document.getElementById("player-rows");
 const playerRowTemplate = document.getElementById("player-row-template");
 const saveMessage = document.getElementById("save-message");
@@ -18,6 +20,12 @@ const holesCount = document.getElementById("holes-count");
 const courseBody = document.getElementById("course-body");
 const scorePanelHeader = document.querySelector(".score-panel-header");
 const scorecardPlayerHeader = document.getElementById("scorecard-player-header");
+const tournamentName = document.getElementById("tournament-name");
+const copyLinkButton = document.getElementById("copy-link");
+
+function apiUrl(path) {
+  return `/api/tournaments/${tournamentId}${path}`;
+}
 
 function playerTemplateRow(player = { name: "", handicap: 0, flight_id: "" }) {
   const fragment = playerRowTemplate.content.cloneNode(true);
@@ -66,7 +74,7 @@ async function request(url, options = {}) {
 
 async function saveSetup() {
   try {
-    const payload = await request("/api/setup", {
+    const payload = await request(apiUrl("/setup"), {
       method: "POST",
       body: JSON.stringify({ players: collectPlayers() }),
     });
@@ -229,7 +237,7 @@ function buildScorecardPayload() {
 async function saveScorecard() {
   if (!flightSelect.value) return;
   try {
-    const payload = await request("/api/flight-scores", {
+    const payload = await request(apiUrl("/flight-scores"), {
       method: "POST",
       body: JSON.stringify({
         flight_id: flightSelect.value,
@@ -257,7 +265,7 @@ async function clearFlightScores() {
   });
 
   try {
-    const payload = await request("/api/flight-scores", {
+    const payload = await request(apiUrl("/flight-scores"), {
       method: "POST",
       body: JSON.stringify({
         flight_id: flight.flight_id,
@@ -311,6 +319,7 @@ function renderCourse(data) {
 }
 
 function renderSummary(data) {
+  tournamentName.textContent = data.name;
   playerCount.textContent = data.players.length;
   flightCount.textContent = data.flights.length;
   holesCount.textContent = data.course.holes.length;
@@ -340,14 +349,18 @@ function render() {
 }
 
 async function boot() {
+  if (!tournamentId) {
+    window.location.href = "/";
+    return;
+  }
   try {
-    state.data = await request("/api/state");
+    state.data = await request(apiUrl("/state"));
     render();
   } catch (error) {
     flash(error.message, true, saveMessage);
   }
 
-  const events = new EventSource("/api/events");
+  const events = new EventSource(apiUrl("/events"));
   events.onmessage = (event) => {
     state.data = JSON.parse(event.data);
     render();
@@ -370,5 +383,13 @@ document.getElementById("save-scorecard").addEventListener("click", saveScorecar
 document.getElementById("clear-flight").addEventListener("click", clearFlightScores);
 flightSelect.addEventListener("change", () => renderScorecard(state.data));
 window.addEventListener("resize", syncScoreHeaderHeight);
+copyLinkButton.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    flash("Tournament link copied.", false, scoringMessage);
+  } catch {
+    flash("Copy failed. You can copy the URL from your browser.", true, scoringMessage);
+  }
+});
 
 boot();
