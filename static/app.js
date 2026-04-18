@@ -16,6 +16,7 @@ const playerCount = document.getElementById("player-count");
 const flightCount = document.getElementById("flight-count");
 const holesCount = document.getElementById("holes-count");
 const courseBody = document.getElementById("course-body");
+const scorePanelHeader = document.querySelector(".score-panel-header");
 
 function playerTemplateRow(player = { name: "", handicap: 0, flight_id: "" }) {
   const fragment = playerRowTemplate.content.cloneNode(true);
@@ -300,6 +301,14 @@ function renderSummary(data) {
     : "Waiting for scores...";
 }
 
+function syncScoreHeaderHeight() {
+  if (!scorePanelHeader) return;
+  document.documentElement.style.setProperty(
+    "--score-header-height",
+    `${Math.ceil(scorePanelHeader.offsetHeight)}px`,
+  );
+}
+
 function render() {
   if (!state.data) return;
   renderTabs();
@@ -309,6 +318,7 @@ function render() {
   renderLeaderboard(state.data);
   renderCourse(state.data);
   renderSummary(state.data);
+  syncScoreHeaderHeight();
 }
 
 async function boot() {
@@ -341,5 +351,6 @@ document.getElementById("save-setup").addEventListener("click", saveSetup);
 document.getElementById("save-scorecard").addEventListener("click", saveScorecard);
 document.getElementById("clear-flight").addEventListener("click", clearFlightScores);
 flightSelect.addEventListener("change", () => renderScorecard(state.data));
+window.addEventListener("resize", syncScoreHeaderHeight);
 
 boot();

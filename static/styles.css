@@ -270,7 +270,7 @@ button.danger {
 
 .scorecard-table thead th {
   position: sticky;
-  top: 162px;
+  top: var(--score-header-height, 0px);
   background: #f8f2e7;
   z-index: 2;
 }
@@ -384,7 +384,7 @@ button.danger {
 
   .scorecard-table thead th {
     position: sticky;
-    top: 188px;
+    top: var(--score-header-height, 0px);
     z-index: 3;
     background: #f8f2e7;
     padding: 8px 4px;
