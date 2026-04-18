@@ -383,7 +383,7 @@ button.danger {
   }
 
   .scorecard-table thead th {
-    top: 196px;
+    position: static;
     padding: 8px 4px;
   }
 
