@@ -230,15 +230,31 @@ button.danger {
   color: var(--muted);
 }
 
+.score-panel {
+  position: relative;
+}
+
+.score-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin: -20px -20px 14px;
+  padding: 20px 20px 14px;
+  background: rgba(255, 249, 239, 0.97);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(31, 107, 71, 0.1);
+}
+
+.score-panel-header .panel-head {
+  margin-bottom: 12px;
+}
+
 .score-actions {
-  margin-bottom: 14px;
+  margin-bottom: 0;
   flex-wrap: wrap;
 }
 
 .sticky-score-actions {
-  position: sticky;
-  top: 10px;
-  z-index: 4;
   padding: 10px 12px;
   border-radius: 18px;
   background: rgba(252, 248, 239, 0.95);
@@ -247,12 +263,14 @@ button.danger {
 }
 
 .scorecard-table {
-  min-width: 680px;
+  width: 100%;
+  min-width: 100%;
+  table-layout: fixed;
 }
 
 .scorecard-table thead th {
   position: sticky;
-  top: 72px;
+  top: 162px;
   background: #f8f2e7;
   z-index: 2;
 }
@@ -263,9 +281,9 @@ button.danger {
   left: 0;
   background: #fcf8ef;
   z-index: 1;
-  width: 88px;
-  min-width: 88px;
-  max-width: 88px;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
 }
 
 .score-player-head {
@@ -273,10 +291,13 @@ button.danger {
   font-size: 0.95rem;
   text-transform: none;
   letter-spacing: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .score-input {
-  min-width: 58px;
+  width: 100%;
+  min-width: 0;
   text-align: center;
   padding: 9px 6px;
 }
@@ -301,8 +322,8 @@ button.danger {
 }
 
 .hole-head {
-  width: 88px;
-  min-width: 88px;
+  width: 72px;
+  min-width: 72px;
 }
 
 .hole-meta-row {
@@ -350,49 +371,76 @@ button.danger {
     flex-wrap: wrap;
   }
 
-  .sticky-score-actions {
-    position: sticky;
-    bottom: 10px;
-    top: auto;
-    box-shadow: 0 12px 30px rgba(31, 42, 32, 0.16);
+  .score-panel-header {
+    top: 0;
+    margin: -16px -16px 12px;
+    padding: 16px 16px 12px;
+    box-shadow: 0 10px 26px rgba(31, 42, 32, 0.1);
   }
 
   .scorecard-table {
-    min-width: 520px;
+    min-width: 100%;
   }
 
   .scorecard-table thead th {
-    top: 0;
-    padding: 10px 8px;
+    top: 196px;
+    padding: 8px 4px;
   }
 
   .scorecard-table th:first-child,
   .scorecard-table td:first-child,
   .hole-head {
-    width: 68px;
-    min-width: 68px;
-    max-width: 68px;
-    padding-left: 8px;
-    padding-right: 8px;
+    width: 54px;
+    min-width: 54px;
+    max-width: 54px;
+    padding-left: 6px;
+    padding-right: 6px;
   }
 
   .score-player-head {
-    font-size: 0.82rem;
+    font-size: 0.72rem;
     line-height: 1.1;
   }
 
+  .micro {
+    font-size: 0.62rem;
+  }
+
   .score-input {
-    min-width: 52px;
-    padding: 8px 4px;
+    padding: 7px 2px;
+    font-size: 0.95rem;
   }
 
   .cell-meta {
     display: grid;
     gap: 2px;
-    font-size: 0.68rem;
+    font-size: 0.6rem;
   }
 
   .hole-meta-row {
-    font-size: 0.66rem;
+    font-size: 0.58rem;
+  }
+
+  .score-toolbar {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .score-toolbar label {
+    min-width: 150px;
+    flex: 1 1 150px;
+  }
+
+  .flight-summary {
+    font-size: 0.8rem;
+  }
+
+  .sticky-score-actions {
+    gap: 8px;
+  }
+
+  .sticky-score-actions button {
+    flex: 1 1 140px;
+    padding: 10px 12px;
   }
 }

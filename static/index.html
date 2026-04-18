@@ -94,24 +94,26 @@
       </section>
 
       <section class="tab-panel" id="tab-scoring">
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <p class="eyebrow">Flight Scoring</p>
-              <h2>Scorecard</h2>
+        <section class="panel score-panel">
+          <div class="score-panel-header">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Flight Scoring</p>
+                <h2>Scorecard</h2>
+              </div>
+              <span id="scoring-message" class="hint">Choose a flight to start scoring.</span>
             </div>
-            <span id="scoring-message" class="hint">Choose a flight to start scoring.</span>
-          </div>
-          <div class="score-toolbar">
-            <label>
-              Flight
-              <select id="flight-select"></select>
-            </label>
-            <div class="flight-summary" id="flight-summary"></div>
-          </div>
-          <div class="actions score-actions sticky-score-actions">
-            <button id="save-scorecard">Save Scores</button>
-            <button id="clear-flight" class="secondary">Clear Flight Scores</button>
+            <div class="score-toolbar">
+              <label>
+                Flight
+                <select id="flight-select"></select>
+              </label>
+              <div class="flight-summary" id="flight-summary"></div>
+            </div>
+            <div class="actions score-actions sticky-score-actions">
+              <button id="save-scorecard">Save Scores</button>
+              <button id="clear-flight" class="secondary">Clear Flight Scores</button>
+            </div>
           </div>
           <div id="scorecard-wrap" class="table-wrap scorecard-wrap empty">
             Save the setup above to begin score entry.
