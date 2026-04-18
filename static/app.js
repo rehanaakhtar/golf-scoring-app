@@ -17,6 +17,7 @@ const flightCount = document.getElementById("flight-count");
 const holesCount = document.getElementById("holes-count");
 const courseBody = document.getElementById("course-body");
 const scorePanelHeader = document.querySelector(".score-panel-header");
+const scorecardPlayerHeader = document.getElementById("scorecard-player-header");
 
 function playerTemplateRow(player = { name: "", handicap: 0, flight_id: "" }) {
   const fragment = playerRowTemplate.content.cloneNode(true);
@@ -122,16 +123,33 @@ function renderScorecard(data) {
     scorecardWrap.className = "table-wrap scorecard-wrap empty";
     scorecardWrap.innerHTML = "Save the setup above to begin score entry.";
     flightSummary.textContent = "";
+    scorecardPlayerHeader.innerHTML = "";
+    scorecardPlayerHeader.className = "scorecard-player-header empty";
     return;
   }
 
   flightSummary.textContent = `${flight.players.length} player(s) in flight ${flight.flight_id}`;
+  scorecardPlayerHeader.className = "scorecard-player-header";
+  scorecardPlayerHeader.style.gridTemplateColumns = `var(--hole-column-width) repeat(${flight.players.length}, minmax(0, 1fr))`;
+  scorecardPlayerHeader.innerHTML = `
+    <div class="scorecard-player-hole">Hole</div>
+    ${flight.players
+      .map(
+        (player) => `
+          <div class="scorecard-player-card">
+            <div class="score-player-head">${player.name}</div>
+            <div class="micro">HCP ${player.handicap}</div>
+          </div>
+        `,
+      )
+      .join("")}
+  `;
   const playerHeaders = flight.players
     .map(
       (player) => `
         <th>
-          <div class="score-player-head">${player.name}</div>
-          <div class="micro">HCP ${player.handicap}</div>
+          <div class="score-player-head" aria-hidden="true">${player.name}</div>
+          <div class="micro" aria-hidden="true">HCP ${player.handicap}</div>
         </th>
       `,
     )

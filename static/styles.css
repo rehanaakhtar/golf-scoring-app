@@ -8,6 +8,7 @@
   --accent-strong: #174f35;
   --danger: #9b2c2c;
   --shadow: 0 20px 45px rgba(31, 42, 32, 0.12);
+  --hole-column-width: 72px;
 }
 
 * {
@@ -262,17 +263,48 @@ button.danger {
   backdrop-filter: blur(8px);
 }
 
+.scorecard-player-header {
+  display: grid;
+  gap: 0;
+  align-items: stretch;
+  margin-top: 12px;
+  background: #f8f2e7;
+  border: 1px solid rgba(31, 107, 71, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.scorecard-player-header.empty {
+  display: none;
+}
+
+.scorecard-player-hole,
+.scorecard-player-card {
+  padding: 10px 8px;
+  min-width: 0;
+}
+
+.scorecard-player-hole {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border-right: 1px solid rgba(31, 107, 71, 0.08);
+}
+
+.scorecard-player-card {
+  border-left: 1px solid rgba(31, 107, 71, 0.08);
+}
+
 .scorecard-table {
   width: 100%;
   min-width: 100%;
   table-layout: fixed;
 }
 
-.scorecard-table thead th {
-  position: sticky;
-  top: var(--score-header-height, 0px);
-  background: #f8f2e7;
-  z-index: 2;
+.scorecard-table thead {
+  display: none;
 }
 
 .scorecard-table th:first-child,
@@ -281,9 +313,9 @@ button.danger {
   left: 0;
   background: #fcf8ef;
   z-index: 1;
-  width: 72px;
-  min-width: 72px;
-  max-width: 72px;
+  width: var(--hole-column-width);
+  min-width: var(--hole-column-width);
+  max-width: var(--hole-column-width);
 }
 
 .score-player-head {
@@ -322,8 +354,8 @@ button.danger {
 }
 
 .hole-head {
-  width: 72px;
-  min-width: 72px;
+  width: var(--hole-column-width);
+  min-width: var(--hole-column-width);
 }
 
 .hole-meta-row {
@@ -382,14 +414,6 @@ button.danger {
     min-width: 100%;
   }
 
-  .scorecard-table thead th {
-    position: sticky;
-    top: var(--score-header-height, 0px);
-    z-index: 3;
-    background: #f8f2e7;
-    padding: 8px 4px;
-  }
-
   .scorecard-table th:first-child,
   .scorecard-table td:first-child,
   .hole-head {
@@ -398,6 +422,10 @@ button.danger {
     max-width: 54px;
     padding-left: 6px;
     padding-right: 6px;
+  }
+
+  :root {
+    --hole-column-width: 54px;
   }
 
   .score-player-head {
@@ -445,5 +473,14 @@ button.danger {
   .sticky-score-actions button {
     flex: 1 1 140px;
     padding: 10px 12px;
+  }
+
+  .scorecard-player-hole,
+  .scorecard-player-card {
+    padding: 8px 4px;
+  }
+
+  .scorecard-player-hole {
+    font-size: 0.62rem;
   }
 }
