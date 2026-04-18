@@ -165,8 +165,11 @@ function renderScorecard(data) {
       return `
         <tr>
           <td class="sticky-meta">
-            <strong>${hole.number}</strong>
-            <div class="micro">Par ${hole.par} • SI ${hole.index}</div>
+            <strong>H${hole.number}</strong>
+            <div class="hole-meta-row">
+              <span>P${hole.par}</span>
+              <span>SI${hole.index}</span>
+            </div>
           </td>
           ${cells}
         </tr>
@@ -179,7 +182,7 @@ function renderScorecard(data) {
     <table class="scorecard-table">
       <thead>
         <tr>
-          <th>Hole</th>
+          <th class="hole-head">Hole</th>
           ${playerHeaders}
         </tr>
       </thead>
